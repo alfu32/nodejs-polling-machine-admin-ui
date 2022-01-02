@@ -1,0 +1,13 @@
+.list-item{
+  display: inline-block;
+  border: 1px solid #777;
+  font-size: 9px;
+  color:#DDD;
+  background:#444;
+  cursor:pointer;
+}
+.list-item{
+  color:#EEE;
+  background:#777;
+  border: 1px solid #888;
+}
