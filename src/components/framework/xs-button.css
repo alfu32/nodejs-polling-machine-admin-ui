@@ -1,0 +1,20 @@
+.xs-button{
+    font-size: 9px;
+    border-radius: 8px;
+    max-height: 17px;
+    min-width: 17px;
+    text-align: center;
+    padding: 2px;
+    display: inline-block;
+    background: #454;
+    border: 1px solid #343;
+    color: #eee;
+    cursor: pointer;
+    vertical-align: middle;
+    align-items: center;
+    margin: 2px;
+}
+.xs-button:hover{
+    background: #676;
+    border: 1px solid #565;
+}

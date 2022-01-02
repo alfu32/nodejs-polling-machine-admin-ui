@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Router, Link } from "wouter";
+import {useFetch} from 'use-http';
+import {config} from '../package.json';
+
+import "primereact/resources/themes/lara-light-indigo/theme.css";  //theme
+import "primereact/resources/primereact.min.css";                  //core css
+import "primeicons/primeicons.css";                                //icons
+
+import { Splitter, SplitterPanel } from 'primereact/splitter';
+import {useEditors} from "./hooks/editors";
+import {Editors} from "./components/editors";
+import {Sidebar} from "./components/sidebar";
 
 /**
 * This code defines the react app
@@ -23,7 +34,34 @@ import "./styles/styles.css";
 
 // Home function that is reflected across the site
 export default function App() {
-  return (<div>HOME</div>)
+  const [editors,addEditor,removeEditor,updateEditor] = useEditors([]);
+  function fnFactory(key,editor){
+    return (value)=>{
+      console.log({editor, key, value});
+    }
+  }
+  return (<>
+    <Splitter style={{width: '100%'}}>
+      <SplitterPanel>
+        <Sidebar
+          onItemClick={item => {addEditor({
+          id:`${item.type}/${item.name}`,
+          type:item.type,
+          name:item.name,
+          form:item.form,
+        })}}/>
+      </SplitterPanel>
+      <SplitterPanel>
+        <Editors
+          editors={editors}
+          onRemoveEditor={editor => {
+            removeEditor(editor)
+          }}
+          onContentChange={fnFactory}
+        />
+      </SplitterPanel>
+    </Splitter>
+    </>)
 /*  return (
     <Router hook={useHashLocation}>
       <Seo />
