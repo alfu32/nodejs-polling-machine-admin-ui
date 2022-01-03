@@ -15,7 +15,7 @@ export function Editors({editors,onRemoveEditor,onContentChange,children}){
     {
       Object.values(editors).map((editor,index) =>
         <TabPanel
-          header={`${editor.type}/${editor.name}`}
+          header={`${editor.type}/${editor.name}${editor.changes?'*':''}`}
           headerTemplate={options => {
             return <div className={'tab-header'}>
               <span onClick={ev => setActiveIndex(index)}>{editor.type}/{editor.name}</span>
