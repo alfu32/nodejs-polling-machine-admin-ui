@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Router, Link } from "wouter";
 import {useFetch} from 'use-http';
+import {log} from "./service/logger";
 import {config} from '../package.json';
+import {subscribe} from './service/logger'
 
 import "primereact/resources/themes/lara-light-indigo/theme.css";  //theme
 import "primereact/resources/primereact.min.css";                  //core css
@@ -11,6 +13,8 @@ import { Splitter, SplitterPanel } from 'primereact/splitter';
 import {useEditors} from "./hooks/editors";
 import {Editors} from "./components/editors";
 import {Sidebar} from "./components/sidebar";
+import Editor from "@monaco-editor/react";
+import { Button } from 'primereact/button';
 
 /**
 * This code defines the react app
@@ -34,22 +38,118 @@ import "./styles/styles.css";
 
 // Home function that is reflected across the site
 export default function App() {
+  const modules = useFetch(`${config.apiBaseUrl}/Module/getAll`, {method:'GET'}, [])
+  const watchers = useFetch(`${config.apiBaseUrl}/Watcher/getAll`, {method:'GET'}, [])
   const [editors,addEditor,removeEditor,updateEditor] = useEditors([]);
+  const [hlog,setHlog] = useState([]);
+  subscribe(({method,prefix,args})=>{
+    setHlog([...hlog,{prefix}]);
+  })
+  useEffect(()=>{
+    // setHlog([...hlog])
+  },[hlog])
+  const onItemChanged=wrapper => {
+    console.log('changed',wrapper)
+  }
   function fnFactory(key,editor){
     return (value)=>{
       console.log({editor, key, value});
     }
   }
+  function handleUpdate(tag,code,wrapper,item){
+    return function(newValue,changes){
+      wrapper.changes=wrapper.changes||{};
+      wrapper.changes[code]={
+        changes,newValue
+      }
+      // console.log(tag,code,wrapper,item,newValue,changes);
+      onItemChanged(wrapper);
+    }
+  }
+  const _modules = {
+    ...modules,
+    data:(modules&&modules.data?modules.data:[])
+    .map(m=>{
+      const wrapper = {
+        ...m,
+        id:`module/${m.name}`,
+        type:'module',
+        name:m.npm_module,
+        changes:null,
+        newValue:m.source,
+      };
+      const form = (<>
+        Module Id : {m.module_id}<br/>
+        NpmModule:<input type="text" defaultValue={m.npm_module}/><br/>
+        Code:<br/>
+        <Editor
+          height="30vh"
+          theme="vs-dark"
+          defaultLanguage="javascript"
+          defaultValue={m.source}
+          onChange={handleUpdate('module','source',wrapper,m)}
+        /></>);
+      wrapper.form = form;
+      return wrapper;
+    })}
+  const _watchers = {
+    ...watchers,
+    data:(watchers&&watchers.data?watchers.data:[])
+      .map(w=>{
+        const wrapper = {
+          ...w,
+          id:`module/${w.name}`,
+          type:'watcher',
+          name:w.name,
+        };
+        const form = (<>
+          <Button onClick={(ev)=>{
+                  log('watchers-save',w);
+                }}>Save</Button>
+          Watcher Id : {w.watcher_id}<br/>
+          Name : <input type="text" defaultValue={w.name}/><br/>
+          Code:<br/>
+              <Editor
+            height="40vh"
+            theme="vs-dark"
+            defaultLanguage="javascript"
+            defaultValue={w.source}
+            onChange={handleUpdate('watcher','source',wrapper,w)}
+          />
+          Poll Config:<br/>
+              <Editor
+            height="20vh"
+            theme="vs-dark"
+            defaultLanguage="javascript"
+            defaultValue={w.poll_config}
+            onChange={handleUpdate('watcher','poll_config',wrapper,w)}
+          />
+        </>);
+        wrapper.form = form
+        return wrapper;
+      })
+  }
   return (<>
     <Splitter style={{width: '100%'}}>
       <SplitterPanel>
         <Sidebar
-          onItemClick={item => {addEditor({
-          id:`${item.type}/${item.name}`,
-          type:item.type,
-          name:item.name,
-          form:item.form,
-        })}}/>
+          lists={{
+            modules:{
+              title:'Modules',
+              type:'module',
+              data:_modules,
+            },
+            watchers:{
+              title:'Watchers',
+              type:'watcher',
+              data:_watchers,
+            }
+          }}
+          onItemClick={item => {
+            console.log('addEditor',item);
+            addEditor(item)
+          }}
+          />
       </SplitterPanel>
       <SplitterPanel>
         <Editors
@@ -61,6 +161,7 @@ export default function App() {
         />
       </SplitterPanel>
     </Splitter>
+      <pre>{JSON.stringify(hlog,null," ")}</pre>
     </>)
 /*  return (
     <Router hook={useHashLocation}>

@@ -82,6 +82,10 @@ const config = {
     text:colors.Reset
   },
 }
+window.subscribers=window.subscribers||[];
+export function subscribe(subFn){
+  window.subscribers.push(subFn);
+}
 function logFactory(methodName){
   return (...args)=>{
     const lastCallPoint =  callPoint();
@@ -89,6 +93,13 @@ function logFactory(methodName){
     const colorCfg=config[methodName];
     const prefix = `[${methodName.toUpperCase()}][${datestamp}][${lastCallPoint}]:`;
     console[methodName](prefix,...args);
+    window.subscribers.forEach(subFn => {
+      subFn({
+        method:methodName,
+        prefix,
+        args:[...args]
+      })
+    })
   }
 }
 
