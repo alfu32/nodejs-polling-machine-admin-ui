@@ -20,7 +20,7 @@ export function CrudList({
         items.error?
           (<pre>items.error.message</pre>):
           items.data.map(
-                (it,index,refAll) => <div className={'list-item'}>
+                (it,index,refAll) => <div className={'list-item'} key={it.name+'-'+index}>
                   {onExpand?<XsButton onClick={ev => onCreateRelated(title,items,it)}>
                       <i className="pi pi-plus" style={{fontSize:'12px'}}></i>
                     </XsButton>:[]}

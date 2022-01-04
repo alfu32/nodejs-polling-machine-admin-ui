@@ -61,9 +61,20 @@ export default function App() {
   useEffect(()=>{
     // setHlog([...hlog])
   },[hlog])
-  function fnFactory(key,editor){
-    return (value)=>{
-      console.log({editor, key, value});
+  async function saveAction(editor){
+    const newItem=Object.keys(editor.changes)
+    .reduce((item,key) => {
+      item[key]=editor.changes[key].newValue
+      return item;
+    },{...editor.item})
+    console.log({editor,newItem});
+    try{
+      await editor.api.update(newItem);
+      editor.changes={};
+      editor.item=newItem;
+      updateEditor(editor);
+    }catch(err){
+      console.error('error saving',{editor,newItem});
     }
   }
   function handleUpdate(tag,code,wrapper,item){
@@ -73,7 +84,8 @@ export default function App() {
         changes,newValue
       }
       // console.log(tag,code,wrapper,item,newValue,changes);
-      console.log('changed',wrapper)
+      console.log('changed',wrapper);
+      updateEditor(wrapper);
     }
   }
   const _modules = {
@@ -85,6 +97,11 @@ export default function App() {
         id:`module/${m.name}`,
         type:'module',
         name:m.npm_module,
+        api:{
+          add:addModule,
+          update:updateModule,
+          delete:deleteModule,
+        },
       };
       const form = (<>
         Module Id : {m.module_id}<br/>
@@ -109,11 +126,16 @@ export default function App() {
           id:`module/${w.name}`,
           type:'watcher',
           name:w.name,
+          api:{
+            add:addWatcher,
+            update:updateWatcher,
+            delete:deleteWatcher,
+          },
         };
         const form = (<>
-          <Button onClick={(ev)=>{
+          <XsButton onClick={(ev)=>{
                   log('watchers-save',w);
-                }}>Save</Button>
+                }}>Save</XsButton>
           Watcher Id : {w.watcher_id}<br/>
           Name : <input type="text" defaultValue={w.name}/><br/>
           Code:<br/>
@@ -137,13 +159,14 @@ export default function App() {
         return wrapper;
       })
   }
-  const onItemClick=item => {
-            console.log('addEditor',item);
-            addEditor(item)
-          }
   function editItem(item) {
-      log('sidebar.launch.edit-item',item)
-      onItemClick(item);
+    log('sidebar.launch.edit-item',item);
+    console.log('addEditor',item);
+    addEditor(item);
+  }
+  function deleteItem(item) {
+    log('sidebar.delete.edit-item',item);
+    console.log('delete-item',item);
   }
   const lists = {
       modules:{
@@ -160,11 +183,11 @@ export default function App() {
         title:'Watchers',
         type:'watcher',
         data:_watchers,
-        onExpand:false,
+        onExpand:(title,items,item)=>{},
         onEdit:(title,items,item)=>{editItem(item)},
-        onCreateRelated:false,
-        onCopy:false,
-        onDelete:(title,items,item)=>{editItem(item)},
+        onCreateRelated:(title,items,item)=>{},
+        onCopy:(title,items,item)=>{},
+        onDelete:(title,items,item)=>{deleteItem(item)},
       }
     }
   return (<>
@@ -173,6 +196,7 @@ export default function App() {
         {Object.values(lists)
         .map(
           list => <CrudList
+            key={list.title}
             title={list.title}
             itemName={it => it.name}
             items={list.data}
@@ -187,10 +211,10 @@ export default function App() {
       <SplitterPanel>
         <Editors
           editors={editors}
-          onRemoveEditor={editor => {
+          removeAction={editor => {
             removeEditor(editor)
           }}
-          onContentChange={fnFactory}
+          saveAction={saveAction}
         />
       </SplitterPanel>
     </Splitter>

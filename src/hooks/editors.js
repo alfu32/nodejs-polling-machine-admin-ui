@@ -16,7 +16,8 @@ export function useEditors(){
   }
   const updateEditor = (object)=>{
     const newEditors= {...editors};
-    delete newEditors[object.id]
+    delete newEditors[object.id];
+    newEditors[object.id]=object;
     setEditors(newEditors)
   }
   return [editors,addEditor,removeEditor,updateEditor];
