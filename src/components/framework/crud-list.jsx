@@ -8,6 +8,7 @@ export function CrudList({
   children,
   sublist,
   title,
+  parentItem,
   items,
   create,
   loading,
@@ -25,7 +26,7 @@ export function CrudList({
       <strong>{title}</strong>
       {
         create
-          ?<XsButton onClick={ev => create()}>
+          ?<XsButton onClick={ev => create(parentItem)}>
             <i className="pi pi-plus" style={{fontSize:'12px'}}></i>
           </XsButton>
           :[]

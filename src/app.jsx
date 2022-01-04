@@ -199,7 +199,7 @@ export default function App() {
           };
           const form = (<>
             Watcher Id : {w.watcher_id}<br/>
-            Name : <input type="text" defaultValue={w.name} onChange={handleInputUpdate('watcher','name',wrapper)}/><br/>
+            Name : <input type="text" size={80} defaultValue={w.name} onChange={handleInputUpdate('watcher','name',wrapper)}/><br/>
             Code:<br/>
                 <Editor
               height="40vh"
@@ -221,48 +221,40 @@ export default function App() {
           return wrapper;
         });
     const _subscribers = (loadingSubscribers?[]:(subscribers||[]))
-        .map(w=>{
+        .map(s=>{
           const wrapper = {
-            item:w,
-            id:`w/${w.name}`,
-            type:'watcher',
-            name:w.name,
-            expanded:!!expanded[w.watcher_id],
+            item:s,
+            id:`s/${s.name}`,
+            type:'subscriber',
+            name:s.name,
+            expanded:!!expanded[s.subscriber_id],
             api:{
-              add:addWatcher,
-              update:updateWatcher,
-              delete:deleteWatcher,
-              copy:async (watcher)=>{
-                const newWatcher = {...watcher}
-                newWatcher.name+=' copy'
+              add:addSubscriber,
+              update:updateSubscriber,
+              delete:deleteSubscriber,
+              copy:async (subscriber)=>{
+                const newSubscriber = {...subscriber}
+                newSubscriber.name+=' copy'
                 try{
-                  await addWatcher(newWatcher);
-                  success('Watcher copied');
+                  await addWatcher(newSubscriber);
+                  success('Subscriber copied');
                 }catch(err){
-                  console.error('error copying',{newWatcher});
-                  error('Error copying Watcher');
+                  console.error('error copying',{newSubscriber});
+                  error('Error copying Subscriber');
                 }
               },
             },
           };
           const form = (<>
-            Watcher Id : {w.watcher_id}<br/>
-            Name : <input type="text" defaultValue={w.name} onChange={handleInputUpdate('watcher','name',wrapper)}/><br/>
+            Subscriber Id : {s.subscriber_id}<br/>
+            Name : <input type="text" size={80} defaultValue={s.name} onChange={handleInputUpdate('subscriber','name',wrapper)}/><br/>
             Code:<br/>
                 <Editor
               height="40vh"
               theme="vs-dark"
               defaultLanguage="javascript"
-              defaultValue={w.source}
-              onChange={handleUpdate('watcher','source',wrapper)}
-            />
-            Poll Config:<br/>
-                <Editor
-              height="40vh"
-              theme="vs-dark"
-              defaultLanguage="javascript"
-              defaultValue={w.poll_config}
-              onChange={handleUpdate('watcher','poll_config',wrapper)}
+              defaultValue={s.source}
+              onChange={handleUpdate('subscriber','source',wrapper)}
             />
           </>);
           wrapper.form = form
@@ -294,7 +286,7 @@ export default function App() {
           };
           const form = (<>
             Watcher Id : {n.notifier_id}<br/>
-            Name : <input type="text" defaultValue={n.name} onChange={handleInputUpdate('notifier','name',wrapper)}/><br/>
+            Name : <input type="text" size={80} defaultValue={n.name} onChange={handleInputUpdate('notifier','name',wrapper)}/><br/>
             Code:<br/>
                 <Editor
               height="40vh"
@@ -334,49 +326,23 @@ export default function App() {
         onDelete:(title,items,item)=>{deleteItem(item)},
         sublist:(item)=>[],
       }
-      const subscribersList={
-          title:'Subscribers',
-          type:'notifiers',
-          loading:loadingSubscribers,
-          error:errorSubscribers,
-          create:async ()=>{
-            const newNotifier = {
-              name: "carl-read-closed",
-              owner_group_id: null,
-              poll_config: "// variable interval :\n// very high frequency from Mo to Fr between 9:00 and 16:00 ( 10 seconds )\n// high frequency from Mo to Fr between 6:00 and 20:00 ( 1 minute )\n// low freq Mo to Fr outside 6:00 to 20:00 ( 5 minutes )\n// very low frequency during weekends ( 1 hour )\nmodule.exports = function nextInterval(){\n  const crt = new Date();\n  if(crt.getHours() <= 20 && crt.getHours() >= 6){\n    if(crt.getDay() >= 1  && crt.getDay() <= 5){\n      return crt.getTime()+60_000;\n    } else {\n      return crt.getTime()+3600_000;\n    }\n  } else {\n    return crt.getTime()+300_000\n  }\n}",
-              source: "module.exports = {}"
-            }
-            try{
-              await addNotifier(newNotifier);
-              success('Notifier created');
-            }catch(err){
-              console.error('error creating',{newNotifier});
-            }
-          },
-          data:_notifiers,
-          onExpand:false,
-          onEdit:(title,items,item)=>{editItem(item)},
-          onCreateRelated:false,
-          onCopy:false,
-          onDelete:(title,items,item)=>{deleteItem(item)},
-        }
       const notifiersList={
           title:'Notifiers',
           type:'notifiers',
           loading:loadingNotifiers,
           error:errorNotifiers,
-          create:async ()=>{
+          create:async (parent)=>{
             const newNotifier = {
-              name: "carl-read-closed",
-              owner_group_id: null,
-              poll_config: "// variable interval :\n// very high frequency from Mo to Fr between 9:00 and 16:00 ( 10 seconds )\n// high frequency from Mo to Fr between 6:00 and 20:00 ( 1 minute )\n// low freq Mo to Fr outside 6:00 to 20:00 ( 5 minutes )\n// very low frequency during weekends ( 1 hour )\nmodule.exports = function nextInterval(){\n  const crt = new Date();\n  if(crt.getHours() <= 20 && crt.getHours() >= 6){\n    if(crt.getDay() >= 1  && crt.getDay() <= 5){\n      return crt.getTime()+60_000;\n    } else {\n      return crt.getTime()+3600_000;\n    }\n  } else {\n    return crt.getTime()+300_000\n  }\n}",
-              source: "module.exports = {}"
+              "subscriber_id": parent.item.subscriber_id,
+              "name":`${parent.item.name}/notifier`,
+              "owner_group_id": null,
+              "source": "module.exports≈{\n        main({modules,data}){\n          return [{val:444}]\n        },\n      }"
             }
             try{
               await addNotifier(newNotifier);
-              success('Notifier created');
+              success(`Notifier for ${parent.item.name} created`);
             }catch(err){
-              console.error('error creating',{newNotifier});
+              console.error(`Error creating notifier to ${parent.item.name}`,{newNotifier});
             }
           },
           data:_notifiers,
@@ -385,6 +351,59 @@ export default function App() {
           onCreateRelated:false,
           onCopy:false,
           onDelete:(title,items,item)=>{deleteItem(item)},
+          sublist:(item)=>[],
+        }
+      const subscribersList={
+          title:'Subscribers',
+          type:'notifiers',
+          loading:loadingSubscribers,
+          error:errorSubscribers,
+          create:async (parent)=>{
+            const newSubscriber = {
+              "watcher_id": parent.item.watcher_id,
+              "name":`${parent.item.name}/subscriber`,
+              "owner_group_id": null,
+              "source": "module.exports≈{\n        main({modules,data}){\n          return [{val:444}]\n        },\n      }"
+            }
+            try{
+              await addSubscriber(newSubscriber);
+              success(`Subscriber to ${parent.item.name} created`);
+            }catch(err){
+              console.error(`Error creating subscriber to ${parent.item.name}`,{newSubscriber});
+            }
+          },
+          data:_subscribers,
+          onExpand:(title,editors,editor)=>{
+            const key = editor.item.subscriber_id;
+            expanded[key]=!expanded[key];
+            console.log({lists,editors});
+            setExpanded({...expanded});
+          },
+          onEdit:(title,items,item)=>{editItem(item)},
+          onCreateRelated:false,
+          onCopy:false,
+          onDelete:(title,items,item)=>{deleteItem(item)},
+          sublist:(item) => {
+              return <CrudList
+                key={notifiersList.title}
+                title={notifiersList.title}
+                parentItem={item}
+                create={notifiersList.create}
+                loading={notifiersList.loading}
+                error={notifiersList.error}
+                itemName={it => it.name}
+                items={notifiersList.data.filter(notifier => {
+                  return notifier.item.subscriber_id===item.item.subscriber_id
+                })}
+                onExpand={notifiersList.onExpand}
+                onEdit={notifiersList.onEdit}
+                onCreateRelated={notifiersList.onCreateRelated}
+                onCopy={notifiersList.onCopy}
+                onDelete={notifiersList.onDelete}
+              >
+              <div>coucou</div>
+            </CrudList>
+          }
         }
       const watchersList={
         title:'Watchers',
@@ -407,30 +426,33 @@ export default function App() {
         },
         data:_watchers,
         onExpand:(title,editors,editor)=>{
-          expanded[editor.item.watcher_id]=!expanded[editor.item.watcher_id];
+          const key = editor.item.watcher_id;
+          expanded[key]=!expanded[key];
           console.log({lists,editors});
           setExpanded({...expanded});
         },
         onEdit:(title,items,item)=>{editItem(item)},
-        onCreateRelated:(title,items,item)=>{},
+        onCreateRelated:false,
         onCopy:(title,items,item)=>{copyItem(item)},
         onDelete:(title,items,item)=>{deleteItem(item)},
         sublist:(item) => {
             return <CrudList
-              key={notifiersList.title}
-              title={notifiersList.title}
-              create={notifiersList.create}
-              loading={notifiersList.loading}
-              error={notifiersList.error}
+              key={subscribersList.title}
+              title={subscribersList.title}
+              parentItem={item}
+              create={subscribersList.create}
+              loading={subscribersList.loading}
+              error={subscribersList.error}
               itemName={it => it.name}
-              items={notifiersList.data.filter(notifier => {
-                return notifier.item.watcher_id===item.item.watcher_id
+              items={subscribersList.data.filter(subscriber => {
+                return subscriber.item.watcher_id===item.item.watcher_id
               })}
-              onExpand={notifiersList.onExpand}
-              onEdit={notifiersList.onEdit}
-              onCreateRelated={notifiersList.onCreateRelated}
-              onCopy={notifiersList.onCopy}
-              onDelete={notifiersList.onDelete}
+              onExpand={subscribersList.onExpand}
+              onEdit={subscribersList.onEdit}
+              onCreateRelated={subscribersList.onCreateRelated}
+              onCopy={subscribersList.onCopy}
+              onDelete={subscribersList.onDelete}
+              sublist={subscribersList.sublist}
             >
             <div>coucou</div>
           </CrudList>
@@ -449,6 +471,7 @@ export default function App() {
           list => <CrudList
             key={list.title}
             title={list.title}
+            parentItem={null}
             create={list.create}
             loading={list.loading}
             error={list.error}
