@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useRef } from "react";
 import { Router, Link } from "wouter";
 import {useFetch} from 'use-http';
 import {log} from "./service/logger";
@@ -15,7 +15,8 @@ import {Editors} from "./components/editors";
 import {Sidebar} from "./components/sidebar";
 import Editor from "@monaco-editor/react";
 import { Button } from 'primereact/button';
-import {useModules,useWatchers} from './hooks/api.hooks';
+import { Toast } from 'primereact/toast';
+import {useModules,useWatchers,useSubscribers,useNotifiers} from './hooks/api.hooks';
 import {XsButton} from "./components/framework/xs-button";
 import {CrudList} from "./components/framework/crud-list";
 
@@ -41,8 +42,11 @@ import "./styles/styles.css";
 
 // Home function that is reflected across the site
 export default function App() {
+  const toast =  useRef(null);
   const [loadingModules, errorModules,modules,addModule,updateModule,deleteModule] = useModules();
   const [loadingWatchers, errorWatchers,watchers,addWatcher,updateWatcher,deleteWatcher] = useWatchers();
+  const [loadingSubscribers, errorSubscribers,subscribers,addSubscriber,updateSubscriber,deleteSubscriber] = useSubscribers();
+  const [loadingNotifiers, errorNotifiers,notifiers,addNotifier,updateNotifier,deleteNotifier] = useNotifiers();
   console.log({
     loadingModules,
     loadingWatchers,
@@ -52,6 +56,10 @@ export default function App() {
   /// const modules = useFetch(`${config.apiBaseUrl}/Modules`, {method:'GET'}, []);
   /// const watchers = useFetch(`${config.apiBaseUrl}/Watchers`, {method:'GET'}, []);
   /// console.log({modules,watchers});
+  const success=(message)=>toast.current.show({severity: 'success', summary: 'Success Message', detail: message});
+  const info=(message)=>toast.current.show({severity: 'info', summary: 'Info Message', detail: message});
+  const warn=(message)=>toast.current.show({severity: 'warning', summary: 'Warning Message', detail: message});
+  const error=(message)=>toast.current.show({severity: 'error', summary: 'Error Message', detail: message});
   
   const [editors,addEditor,removeEditor,updateEditor] = useEditors([]);
   const [hlog,setHlog] = useState([]);
@@ -73,8 +81,9 @@ export default function App() {
       delete editor.changes;
       editor.item=newItem;
       updateEditor(editor);
+      success(`Document ${editor.name} saved`);
     }catch(err){
-      console.error('error saving',{editor,newItem});
+      console.error('error saving',{editor,newItem,err});
     }
   }
   function handleUpdate(tag,code,wrapper,item){
@@ -101,110 +110,337 @@ export default function App() {
       updateEditor(wrapper);
     }
   }
-  const _modules = {
-    loading:loadingModules,
-    data:(loadingModules?[]:(modules||[]))
-    .map(m=>{
-      const wrapper = {
-        item:m,
-        id:`module/${m.npm_module}`,
-        type:'module',
-        name:m.npm_module,
-        api:{
-          add:addModule,
-          update:updateModule,
-          delete:deleteModule,
-        },
-      };
-      const form = (<>
-        Module Id : {m.module_id}<br/>
-        InjectionReference:<input type="text" defaultValue={m.injection_ref_name} onChange={handleInputUpdate('module','injection_ref_name',wrapper)}/><br/>
-        NpmModule:<input type="text" defaultValue={m.npm_module} onChange={handleInputUpdate('module','npm_module',wrapper)}/><br/>
-        {m.npm_module.length==0
-         ?(<>Code:<br/>
-          <Editor
-            height="30vh"
-            theme="vs-dark"
-            defaultLanguage="javascript"
-            defaultValue={m.source}
-            onChange={handleUpdate('module','source',wrapper)}
-          /></>)
-         :[]
-        }
-        </>);
-      wrapper.form = form;
-      return wrapper;
-    })}
-  const _watchers = {
-    loading:loadingWatchers,
-    data:(loadingWatchers?[]:(watchers||[]))
-      .map(w=>{
+  function editItem(editor) {
+    log('sidebar.launch.edit-editor',editor);
+    console.log('addEditor',editor);
+    addEditor(editor);
+  }
+  async function deleteItem(editor) {
+    log('sidebar.delete.edit-editor',editor);
+    console.log('delete-editor',editor);
+    try{
+      const result = await editor.api.delete(editor.item);
+      console.log('deleted',result,editor)
+      info(`Document ${editor.name} deleted`);
+    }catch(err){
+      error(`Document ${editor.name} was not deleted`);
+    }
+  }
+  async function copyItem(editor) {
+    log('sidebar.copy.edit-editor',editor);
+    console.log('copy-editor',editor);
+    try{
+      const result = await editor.api.copy(editor.item);
+      console.log('copied',result,editor)
+      info(`Document ${editor.name} copied`);
+    }catch(err){
+      error(`Document ${editor.name} was not copied`);
+    }
+  }
+  const [lists,setLists]=useState({});
+  const [expanded,setExpanded]=useState({});
+  useEffect(()=>{
+    const _modules = (loadingModules?[]:(modules||[]))
+      .map(m=>{
         const wrapper = {
-          item:w,
-          id:`module/${w.name}`,
-          type:'watcher',
-          name:w.name,
+          item:m,
+          id:`m/${m.npm_module}/${m.injection_ref_name}/${m.module_id}`,
+          type:'module',
+          name:`${m.npm_module}/${m.injection_ref_name}/${m.module_id}`,
           api:{
-            add:addWatcher,
-            update:updateWatcher,
-            delete:deleteWatcher,
+            add:addModule,
+            update:updateModule,
+            delete:deleteModule,
           },
         };
         const form = (<>
-          Watcher Id : {w.watcher_id}<br/>
-          Name : <input type="text" defaultValue={w.name} onChange={handleInputUpdate('watcher','name',wrapper)}/><br/>
-          Code:<br/>
-              <Editor
-            height="40vh"
-            theme="vs-dark"
-            defaultLanguage="javascript"
-            defaultValue={w.source}
-            onChange={handleUpdate('watcher','source',wrapper)}
-          />
-          Poll Config:<br/>
-              <Editor
-            height="20vh"
-            theme="vs-dark"
-            defaultLanguage="javascript"
-            defaultValue={w.poll_config}
-            onChange={handleUpdate('watcher','poll_config',wrapper)}
-          />
-        </>);
-        wrapper.form = form
+          Module Id : {m.module_id}<br/>
+          InjectionReference:<input type="text" defaultValue={m.injection_ref_name} onChange={handleInputUpdate('module','injection_ref_name',wrapper)}/><br/>
+          NpmModule:<input type="text" defaultValue={m.npm_module} onChange={handleInputUpdate('module','npm_module',wrapper)}/><br/>
+          {m.npm_module.length==0
+           ?(<>Code:<br/>
+            <Editor
+              height="30vh"
+              theme="vs-dark"
+              defaultLanguage="javascript"
+              defaultValue={m.source}
+              onChange={handleUpdate('module','source',wrapper)}
+            /></>)
+           :[]
+          }
+          </>);
+        wrapper.form = form;
         return wrapper;
-      })
-  }
-  function editItem(item) {
-    log('sidebar.launch.edit-item',item);
-    console.log('addEditor',item);
-    addEditor(item);
-  }
-  function deleteItem(item) {
-    log('sidebar.delete.edit-item',item);
-    console.log('delete-item',item);
-  }
-  const lists = {
-      modules:{
+      });
+    const _watchers = (loadingWatchers?[]:(watchers||[]))
+        .map(w=>{
+          const wrapper = {
+            item:w,
+            id:`w/${w.name}`,
+            type:'watcher',
+            name:w.name,
+            expanded:!!expanded[w.watcher_id],
+            api:{
+              add:addWatcher,
+              update:updateWatcher,
+              delete:deleteWatcher,
+              copy:async (watcher)=>{
+                const newWatcher = {...watcher}
+                newWatcher.name+=' copy'
+                try{
+                  await addWatcher(newWatcher);
+                  success('Watcher copied');
+                }catch(err){
+                  console.error('error copying',{newWatcher});
+                  error('Error copying Watcher');
+                }
+              },
+            },
+          };
+          const form = (<>
+            Watcher Id : {w.watcher_id}<br/>
+            Name : <input type="text" defaultValue={w.name} onChange={handleInputUpdate('watcher','name',wrapper)}/><br/>
+            Code:<br/>
+                <Editor
+              height="40vh"
+              theme="vs-dark"
+              defaultLanguage="javascript"
+              defaultValue={w.source}
+              onChange={handleUpdate('watcher','source',wrapper)}
+            />
+            Poll Config:<br/>
+                <Editor
+              height="40vh"
+              theme="vs-dark"
+              defaultLanguage="javascript"
+              defaultValue={w.poll_config}
+              onChange={handleUpdate('watcher','poll_config',wrapper)}
+            />
+          </>);
+          wrapper.form = form
+          return wrapper;
+        });
+    const _subscribers = (loadingSubscribers?[]:(subscribers||[]))
+        .map(w=>{
+          const wrapper = {
+            item:w,
+            id:`w/${w.name}`,
+            type:'watcher',
+            name:w.name,
+            expanded:!!expanded[w.watcher_id],
+            api:{
+              add:addWatcher,
+              update:updateWatcher,
+              delete:deleteWatcher,
+              copy:async (watcher)=>{
+                const newWatcher = {...watcher}
+                newWatcher.name+=' copy'
+                try{
+                  await addWatcher(newWatcher);
+                  success('Watcher copied');
+                }catch(err){
+                  console.error('error copying',{newWatcher});
+                  error('Error copying Watcher');
+                }
+              },
+            },
+          };
+          const form = (<>
+            Watcher Id : {w.watcher_id}<br/>
+            Name : <input type="text" defaultValue={w.name} onChange={handleInputUpdate('watcher','name',wrapper)}/><br/>
+            Code:<br/>
+                <Editor
+              height="40vh"
+              theme="vs-dark"
+              defaultLanguage="javascript"
+              defaultValue={w.source}
+              onChange={handleUpdate('watcher','source',wrapper)}
+            />
+            Poll Config:<br/>
+                <Editor
+              height="40vh"
+              theme="vs-dark"
+              defaultLanguage="javascript"
+              defaultValue={w.poll_config}
+              onChange={handleUpdate('watcher','poll_config',wrapper)}
+            />
+          </>);
+          wrapper.form = form
+          return wrapper;
+        });
+    const _notifiers = (loadingNotifiers?[]:(notifiers||[]))
+        .map(n=>{
+          const wrapper = {
+            item:n,
+            id:`n/${n.name}`,
+            type:'notifier',
+            name:n.name,
+            api:{
+              add:addNotifier,
+              update:updateNotifier,
+              delete:deleteNotifier,
+              copy:async (notifier)=>{
+                const newNotifier = {...notifier}
+                newNotifier.name+=' copy'
+                try{
+                  await addNotifier(newNotifier);
+                  success('Notifier copied');
+                }catch(err){
+                  console.error('error copying',{newNotifier});
+                  error('Error copying Notifier');
+                }
+              },
+            },
+          };
+          const form = (<>
+            Watcher Id : {n.notifier_id}<br/>
+            Name : <input type="text" defaultValue={n.name} onChange={handleInputUpdate('notifier','name',wrapper)}/><br/>
+            Code:<br/>
+                <Editor
+              height="40vh"
+              theme="vs-dark"
+              defaultLanguage="javascript"
+              defaultValue={n.source}
+              onChange={handleUpdate('notifier','source',wrapper)}
+            />
+          </>);
+          wrapper.form = form
+          return wrapper;
+        });
+      const modulesList = {
         title:'Modules',
         type:'module',
+        loading:loadingModules,
+        error:errorModules,
+        create:async ()=>{
+          const newModule = {
+            "owner_group_id": null,
+            "injection_ref_name": "moment",
+            "npm_module": "",
+            "source": "module.exports≈{\n        /* this function signature*/\n        main:({modules,metadata})=>{\n          return [{val:444}]\n        },\n      }"
+          }
+          try{
+            await addModule(newModule);
+            success('Module created');
+          }catch(err){
+            console.error('error creating',{newModule});
+          }
+        },
         data:_modules,
         onExpand:false,
         onEdit:(title,items,item)=>{editItem(item)},
         onCreateRelated:false,
         onCopy:false,
-        onDelete:(title,items,item)=>{editItem(item)},
-      },
-      watchers:{
+        onDelete:(title,items,item)=>{deleteItem(item)},
+        sublist:(item)=>[],
+      }
+      const subscribersList={
+          title:'Subscribers',
+          type:'notifiers',
+          loading:loadingSubscribers,
+          error:errorSubscribers,
+          create:async ()=>{
+            const newNotifier = {
+              name: "carl-read-closed",
+              owner_group_id: null,
+              poll_config: "// variable interval :\n// very high frequency from Mo to Fr between 9:00 and 16:00 ( 10 seconds )\n// high frequency from Mo to Fr between 6:00 and 20:00 ( 1 minute )\n// low freq Mo to Fr outside 6:00 to 20:00 ( 5 minutes )\n// very low frequency during weekends ( 1 hour )\nmodule.exports = function nextInterval(){\n  const crt = new Date();\n  if(crt.getHours() <= 20 && crt.getHours() >= 6){\n    if(crt.getDay() >= 1  && crt.getDay() <= 5){\n      return crt.getTime()+60_000;\n    } else {\n      return crt.getTime()+3600_000;\n    }\n  } else {\n    return crt.getTime()+300_000\n  }\n}",
+              source: "module.exports = {}"
+            }
+            try{
+              await addNotifier(newNotifier);
+              success('Notifier created');
+            }catch(err){
+              console.error('error creating',{newNotifier});
+            }
+          },
+          data:_notifiers,
+          onExpand:false,
+          onEdit:(title,items,item)=>{editItem(item)},
+          onCreateRelated:false,
+          onCopy:false,
+          onDelete:(title,items,item)=>{deleteItem(item)},
+        }
+      const notifiersList={
+          title:'Notifiers',
+          type:'notifiers',
+          loading:loadingNotifiers,
+          error:errorNotifiers,
+          create:async ()=>{
+            const newNotifier = {
+              name: "carl-read-closed",
+              owner_group_id: null,
+              poll_config: "// variable interval :\n// very high frequency from Mo to Fr between 9:00 and 16:00 ( 10 seconds )\n// high frequency from Mo to Fr between 6:00 and 20:00 ( 1 minute )\n// low freq Mo to Fr outside 6:00 to 20:00 ( 5 minutes )\n// very low frequency during weekends ( 1 hour )\nmodule.exports = function nextInterval(){\n  const crt = new Date();\n  if(crt.getHours() <= 20 && crt.getHours() >= 6){\n    if(crt.getDay() >= 1  && crt.getDay() <= 5){\n      return crt.getTime()+60_000;\n    } else {\n      return crt.getTime()+3600_000;\n    }\n  } else {\n    return crt.getTime()+300_000\n  }\n}",
+              source: "module.exports = {}"
+            }
+            try{
+              await addNotifier(newNotifier);
+              success('Notifier created');
+            }catch(err){
+              console.error('error creating',{newNotifier});
+            }
+          },
+          data:_notifiers,
+          onExpand:false,
+          onEdit:(title,items,item)=>{editItem(item)},
+          onCreateRelated:false,
+          onCopy:false,
+          onDelete:(title,items,item)=>{deleteItem(item)},
+        }
+      const watchersList={
         title:'Watchers',
         type:'watcher',
+        loading:loadingWatchers,
+        error:errorWatchers,
+        create:async ()=>{
+          const newWatcher = {
+            name: "carl-read-closed",
+            owner_group_id: null,
+            poll_config: "// variable interval :\n// very high frequency from Mo to Fr between 9:00 and 16:00 ( 10 seconds )\n// high frequency from Mo to Fr between 6:00 and 20:00 ( 1 minute )\n// low freq Mo to Fr outside 6:00 to 20:00 ( 5 minutes )\n// very low frequency during weekends ( 1 hour )\nmodule.exports = function nextInterval(){\n  const crt = new Date();\n  if(crt.getHours() <= 20 && crt.getHours() >= 6){\n    if(crt.getDay() >= 1  && crt.getDay() <= 5){\n      return crt.getTime()+60_000;\n    } else {\n      return crt.getTime()+3600_000;\n    }\n  } else {\n    return crt.getTime()+300_000\n  }\n}",
+            source: "module.exports = {\n  main({modules,data}){\n    // returns a list of watch results\n    // the list is persisted as a watch\n    // each watch must have a unique watch_id\n    // and a payload json object\n    return [{watch_id:444,payload:444}]\n  },\n}",
+          }
+          try{
+            await addWatcher(newWatcher);
+            success('Watcher created');
+          }catch(err){
+            console.error('error creating',{newWatcher});
+          }
+        },
         data:_watchers,
-        onExpand:(title,items,item)=>{},
+        onExpand:(title,editors,editor)=>{
+          expanded[editor.item.watcher_id]=!expanded[editor.item.watcher_id];
+          console.log({lists,editors});
+          setExpanded({...expanded});
+        },
         onEdit:(title,items,item)=>{editItem(item)},
         onCreateRelated:(title,items,item)=>{},
-        onCopy:(title,items,item)=>{},
+        onCopy:(title,items,item)=>{copyItem(item)},
         onDelete:(title,items,item)=>{deleteItem(item)},
+        sublist:(item) => {
+            return <CrudList
+              key={notifiersList.title}
+              title={notifiersList.title}
+              create={notifiersList.create}
+              loading={notifiersList.loading}
+              error={notifiersList.error}
+              itemName={it => it.name}
+              items={notifiersList.data.filter(notifier => {
+                return notifier.item.watcher_id===item.item.watcher_id
+              })}
+              onExpand={notifiersList.onExpand}
+              onEdit={notifiersList.onEdit}
+              onCreateRelated={notifiersList.onCreateRelated}
+              onCopy={notifiersList.onCopy}
+              onDelete={notifiersList.onDelete}
+            >
+            <div>coucou</div>
+          </CrudList>
+        }
       }
-    }
+    setLists({
+      modules:modulesList,
+      watchers:watchersList,
+    })
+  },[modules,watchers,notifiers,subscribers,loadingModules,loadingWatchers,loadingNotifiers,loadingSubscribers,expanded]);
   return (<>
     <Splitter style={{width: '100%'}}>
       <SplitterPanel>
@@ -213,6 +449,9 @@ export default function App() {
           list => <CrudList
             key={list.title}
             title={list.title}
+            create={list.create}
+            loading={list.loading}
+            error={list.error}
             itemName={it => it.name}
             items={list.data}
             onExpand={list.onExpand}
@@ -220,7 +459,9 @@ export default function App() {
             onCreateRelated={list.onCreateRelated}
             onCopy={list.onCopy}
             onDelete={list.onDelete}
-            />
+            sublist={list.sublist}
+          >
+          </CrudList>
         )}
       </SplitterPanel>
       <SplitterPanel>
@@ -233,6 +474,8 @@ export default function App() {
         />
       </SplitterPanel>
     </Splitter>
+      <Toast ref={toast}/>
+      <pre>{JSON.stringify(expanded,null," ")}</pre>
       <pre>{JSON.stringify(hlog,null," ")}</pre>
     </>)
 /*  return (

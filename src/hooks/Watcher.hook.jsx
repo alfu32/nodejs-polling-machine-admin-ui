@@ -15,8 +15,11 @@ export function useWatchers(host='https://parallel-scarlet-juravenator.glitch.me
   }
 
   async function addWatcher(watcher) {
-    await post('/Watcher', watcher)
-    if (response.ok) setWatchers([...watchers, watcher]);
+    const rp = await post('/Watcher', watcher)
+    if (response.ok){
+      console.log(rp);
+      setWatchers([...watchers, rp]);
+    }
   }
   async function updateWatcher(watcher) {
     await put('/Watcher', watcher)
@@ -28,9 +31,11 @@ export function useWatchers(host='https://parallel-scarlet-juravenator.glitch.me
     }
   }
   async function deleteWatcher(watcher) {
-    await del('/Watcher', watcher)
+    console.log('deleting',watcher)
+    await del('/Watcher/'+watcher.watcher_id)
     
     if (response.ok) {
+      console.log('deleted',watcher,response);
       const newWatchers = watchers.filter(_watcher => {
         return _watcher.watcher_id !== watcher.watcher_id;
       });
