@@ -15,6 +15,9 @@ import {Editors} from "./components/editors";
 import {Sidebar} from "./components/sidebar";
 import Editor from "@monaco-editor/react";
 import { Button } from 'primereact/button';
+import {useModules,useWatchers} from './hooks/api.hooks';
+import {XsButton} from "./components/framework/xs-button";
+import {CrudList} from "./components/framework/crud-list";
 
 /**
 * This code defines the react app
@@ -38,8 +41,18 @@ import "./styles/styles.css";
 
 // Home function that is reflected across the site
 export default function App() {
-  const modules = useFetch(`${config.apiBaseUrl}/Modules`, {method:'GET'}, [])
-  const watchers = useFetch(`${config.apiBaseUrl}/Watchers`, {method:'GET'}, [])
+  const [loadingModules, errorModules,modules,addModule,updateModule,deleteModule] = useModules();
+  const [loadingWatchers, errorWatchers,watchers,addWatcher,updateWatcher,deleteWatcher] = useWatchers();
+  console.log({
+    loadingModules,
+    loadingWatchers,
+    modules,
+    watchers,
+  })
+  /// const modules = useFetch(`${config.apiBaseUrl}/Modules`, {method:'GET'}, []);
+  /// const watchers = useFetch(`${config.apiBaseUrl}/Watchers`, {method:'GET'}, []);
+  /// console.log({modules,watchers});
+  
   const [editors,addEditor,removeEditor,updateEditor] = useEditors([]);
   const [hlog,setHlog] = useState([]);
   subscribe(({method,prefix,args})=>{
@@ -48,9 +61,6 @@ export default function App() {
   useEffect(()=>{
     // setHlog([...hlog])
   },[hlog])
-  const onItemChanged=wrapper => {
-    console.log('changed',wrapper)
-  }
   function fnFactory(key,editor){
     return (value)=>{
       console.log({editor, key, value});
@@ -63,20 +73,18 @@ export default function App() {
         changes,newValue
       }
       // console.log(tag,code,wrapper,item,newValue,changes);
-      onItemChanged(wrapper);
+      console.log('changed',wrapper)
     }
   }
   const _modules = {
-    ...modules,
-    data:(modules&&modules.data?modules.data:[])
+    loading:loadingModules,
+    data:(loadingModules?[]:(modules||[]))
     .map(m=>{
       const wrapper = {
-        ...m,
+        item:m,
         id:`module/${m.name}`,
         type:'module',
         name:m.npm_module,
-        changes:null,
-        newValue:m.source,
       };
       const form = (<>
         Module Id : {m.module_id}<br/>
@@ -87,17 +95,17 @@ export default function App() {
           theme="vs-dark"
           defaultLanguage="javascript"
           defaultValue={m.source}
-          onChange={handleUpdate('module','source',wrapper,m)}
+          onChange={handleUpdate('module','source',wrapper)}
         /></>);
       wrapper.form = form;
       return wrapper;
     })}
   const _watchers = {
-    ...watchers,
-    data:(watchers&&watchers.data?watchers.data:[])
+    loading:loadingWatchers,
+    data:(loadingWatchers?[]:(watchers||[]))
       .map(w=>{
         const wrapper = {
-          ...w,
+          item:w,
           id:`module/${w.name}`,
           type:'watcher',
           name:w.name,
@@ -114,7 +122,7 @@ export default function App() {
             theme="vs-dark"
             defaultLanguage="javascript"
             defaultValue={w.source}
-            onChange={handleUpdate('watcher','source',wrapper,w)}
+            onChange={handleUpdate('watcher','source',wrapper)}
           />
           Poll Config:<br/>
               <Editor
@@ -122,34 +130,59 @@ export default function App() {
             theme="vs-dark"
             defaultLanguage="javascript"
             defaultValue={w.poll_config}
-            onChange={handleUpdate('watcher','poll_config',wrapper,w)}
+            onChange={handleUpdate('watcher','poll_config',wrapper)}
           />
         </>);
         wrapper.form = form
         return wrapper;
       })
   }
+  const onItemClick=item => {
+            console.log('addEditor',item);
+            addEditor(item)
+          }
+  function editItem(item) {
+      log('sidebar.launch.edit-item',item)
+      onItemClick(item);
+  }
+  const lists = {
+      modules:{
+        title:'Modules',
+        type:'module',
+        data:_modules,
+        onExpand:false,
+        onEdit:(title,items,item)=>{editItem(item)},
+        onCreateRelated:false,
+        onCopy:false,
+        onDelete:(title,items,item)=>{editItem(item)},
+      },
+      watchers:{
+        title:'Watchers',
+        type:'watcher',
+        data:_watchers,
+        onExpand:false,
+        onEdit:(title,items,item)=>{editItem(item)},
+        onCreateRelated:false,
+        onCopy:false,
+        onDelete:(title,items,item)=>{editItem(item)},
+      }
+    }
   return (<>
     <Splitter style={{width: '100%'}}>
       <SplitterPanel>
-        <Sidebar
-          lists={{
-            modules:{
-              title:'Modules',
-              type:'module',
-              data:_modules,
-            },
-            watchers:{
-              title:'Watchers',
-              type:'watcher',
-              data:_watchers,
-            }
-          }}
-          onItemClick={item => {
-            console.log('addEditor',item);
-            addEditor(item)
-          }}
-          />
+        {Object.values(lists)
+        .map(
+          list => <CrudList
+            title={list.title}
+            itemName={it => it.name}
+            items={list.data}
+            onExpand={list.onExpand}
+            onEdit={list.onEdit}
+            onCreateRelated={list.onCreateRelated}
+            onCopy={list.onCopy}
+            onDelete={list.onDelete}
+            />
+        )}
       </SplitterPanel>
       <SplitterPanel>
         <Editors
