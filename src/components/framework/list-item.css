@@ -1,5 +1,5 @@
 .list-item{
-  display: inline-block;
+  display: block;
   border: 1px solid #777;
   font-size: 9px;
   color:#DDD;

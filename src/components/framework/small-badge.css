@@ -1,4 +1,4 @@
-.small-button{
+.small-badge{
   display: inline-block;
   border: 1px solid #777;
   font-size: 9px;
@@ -6,7 +6,7 @@
   background:#444;
   cursor:pointer;
 }
-.small-button:hover{
+.small-badge{
   color:#EEE;
   background:#777;
   border: 1px solid #888;
