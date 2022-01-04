@@ -38,8 +38,8 @@ import "./styles/styles.css";
 
 // Home function that is reflected across the site
 export default function App() {
-  const modules = useFetch(`${config.apiBaseUrl}/Module/getAll`, {method:'GET'}, [])
-  const watchers = useFetch(`${config.apiBaseUrl}/Watcher/getAll`, {method:'GET'}, [])
+  const modules = useFetch(`${config.apiBaseUrl}/Modules`, {method:'GET'}, [])
+  const watchers = useFetch(`${config.apiBaseUrl}/Watchers`, {method:'GET'}, [])
   const [editors,addEditor,removeEditor,updateEditor] = useEditors([]);
   const [hlog,setHlog] = useState([]);
   subscribe(({method,prefix,args})=>{
