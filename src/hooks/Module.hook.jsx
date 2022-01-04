@@ -19,7 +19,7 @@ export function useModules(host='https://parallel-scarlet-juravenator.glitch.me'
     if (response.ok) setModules([...modules, module]);
   }
   async function updateModule(module) {
-    await put('/Modules', module)
+    await put('/Module', module)
     if (response.ok) {
       const newModules = modules.filter(_module => {
         return _module.module_id !== module.module_id;
@@ -28,7 +28,7 @@ export function useModules(host='https://parallel-scarlet-juravenator.glitch.me'
     }
   }
   async function deleteModule(module) {
-    await del('/Modules', module)
+    await del('/Module', module)
     
     if (response.ok) {
       const newModules = modules.filter(_module => {

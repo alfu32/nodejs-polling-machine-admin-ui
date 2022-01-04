@@ -19,7 +19,7 @@ export function useOwner_groups(host='https://parallel-scarlet-juravenator.glitc
     if (response.ok) setOwner_groups([...owner_groups, owner_group]);
   }
   async function updateOwner_group(owner_group) {
-    await put('/Owner_groups', owner_group)
+    await put('/Owner_group', owner_group)
     if (response.ok) {
       const newOwner_groups = owner_groups.filter(_owner_group => {
         return _owner_group.owner_group_id !== owner_group.owner_group_id;
@@ -28,7 +28,7 @@ export function useOwner_groups(host='https://parallel-scarlet-juravenator.glitc
     }
   }
   async function deleteOwner_group(owner_group) {
-    await del('/Owner_groups', owner_group)
+    await del('/Owner_group', owner_group)
     
     if (response.ok) {
       const newOwner_groups = owner_groups.filter(_owner_group => {

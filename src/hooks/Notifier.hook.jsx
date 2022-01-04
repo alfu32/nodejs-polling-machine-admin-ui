@@ -19,7 +19,7 @@ export function useNotifiers(host='https://parallel-scarlet-juravenator.glitch.m
     if (response.ok) setNotifiers([...notifiers, notifier]);
   }
   async function updateNotifier(notifier) {
-    await put('/Notifiers', notifier)
+    await put('/Notifier', notifier)
     if (response.ok) {
       const newNotifiers = notifiers.filter(_notifier => {
         return _notifier.notifier_id !== notifier.notifier_id;
@@ -28,7 +28,7 @@ export function useNotifiers(host='https://parallel-scarlet-juravenator.glitch.m
     }
   }
   async function deleteNotifier(notifier) {
-    await del('/Notifiers', notifier)
+    await del('/Notifier', notifier)
     
     if (response.ok) {
       const newNotifiers = notifiers.filter(_notifier => {

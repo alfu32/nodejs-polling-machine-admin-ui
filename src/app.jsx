@@ -70,7 +70,7 @@ export default function App() {
     console.log({editor,newItem});
     try{
       await editor.api.update(newItem);
-      editor.changes={};
+      delete editor.changes;
       editor.item=newItem;
       updateEditor(editor);
     }catch(err){
@@ -79,6 +79,19 @@ export default function App() {
   }
   function handleUpdate(tag,code,wrapper,item){
     return function(newValue,changes){
+      wrapper.changes=wrapper.changes||{};
+      wrapper.changes[code]={
+        changes,newValue
+      }
+      // console.log(tag,code,wrapper,item,newValue,changes);
+      console.log('changed',wrapper);
+      updateEditor(wrapper);
+    }
+  }
+  function handleInputUpdate(tag,code,wrapper,item){
+    return function(ev){
+      const newValue=ev.target.value;
+      const changes=[wrapper.item[code],newValue]
       wrapper.changes=wrapper.changes||{};
       wrapper.changes[code]={
         changes,newValue
@@ -105,15 +118,20 @@ export default function App() {
       };
       const form = (<>
         Module Id : {m.module_id}<br/>
-        NpmModule:<input type="text" defaultValue={m.npm_module}/><br/>
-        Code:<br/>
-        <Editor
-          height="30vh"
-          theme="vs-dark"
-          defaultLanguage="javascript"
-          defaultValue={m.source}
-          onChange={handleUpdate('module','source',wrapper)}
-        /></>);
+        InjectionReference:<input type="text" defaultValue={m.injection_ref_name} onChange={handleInputUpdate('module','injection_ref_name',wrapper)}/><br/>
+        NpmModule:<input type="text" defaultValue={m.npm_module} onChange={handleInputUpdate('module','npm_module',wrapper)}/><br/>
+        {m.npm_module&&m.npm_module!=""
+         ?(<>Code:<br/>
+          <Editor
+            height="30vh"
+            theme="vs-dark"
+            defaultLanguage="javascript"
+            defaultValue={m.source}
+            onChange={handleUpdate('module','source',wrapper)}
+          /></>)
+         :[]
+        }
+        </>);
       wrapper.form = form;
       return wrapper;
     })}
@@ -133,11 +151,8 @@ export default function App() {
           },
         };
         const form = (<>
-          <XsButton onClick={(ev)=>{
-                  log('watchers-save',w);
-                }}>Save</XsButton>
           Watcher Id : {w.watcher_id}<br/>
-          Name : <input type="text" defaultValue={w.name}/><br/>
+          Name : <input type="text" defaultValue={w.name} onChange={handleInputUpdate('watcher','name',wrapper)}/><br/>
           Code:<br/>
               <Editor
             height="40vh"
