@@ -107,7 +107,7 @@ export default function App() {
     .map(m=>{
       const wrapper = {
         item:m,
-        id:`module/${m.name}`,
+        id:`module/${m.npm_module}`,
         type:'module',
         name:m.npm_module,
         api:{
@@ -120,7 +120,7 @@ export default function App() {
         Module Id : {m.module_id}<br/>
         InjectionReference:<input type="text" defaultValue={m.injection_ref_name} onChange={handleInputUpdate('module','injection_ref_name',wrapper)}/><br/>
         NpmModule:<input type="text" defaultValue={m.npm_module} onChange={handleInputUpdate('module','npm_module',wrapper)}/><br/>
-        {m.npm_module&&m.npm_module!=""
+        {m.npm_module.length==0
          ?(<>Code:<br/>
           <Editor
             height="30vh"
