@@ -3,9 +3,9 @@ import {useState,useEffect} from 'react';
 
 /*api generated at 'https://parallel-scarlet-juravenator.glitch.me'*/
 
-export function useObservables(host='https://parallel-scarlet-juravenator.glitch.me') {
+export function useObservables(host='https://parallel-scarlet-juravenator.glitch.me',options={cacheLife: 0,cachePolicy: 'no-cache',}) {
   const [observables, setObservables] = useState([])
-  const { get, post, put, del, response, loading, error } = useFetch(host)
+  const { get, post, put, del, response, loading, error } = useFetch(host,options)
 
   useEffect(() => { loadInitialObservables() }, []) // componentDidMount
   

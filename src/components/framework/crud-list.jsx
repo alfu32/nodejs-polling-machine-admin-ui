@@ -1,8 +1,11 @@
-import * as React from "react";
+import React,{useState,useEffect} from "react";
 import './crud-list.css'
 import {XsButton} from "./xs-button";
 import { confirmDialog } from 'primereact/confirmdialog'; // To use confirmDialog method
 import { Skeleton } from 'primereact/skeleton';
+
+const Spacer = () => <div style={{margin:'3px',minHeigh:'2px'}}/>;
+const SkeletonList = ({size}) => new Array(size||5).fill(0).map(n => <><Skeleton/><Spacer/></>);
 
 export function CrudList({
   children,
@@ -20,10 +23,14 @@ export function CrudList({
   onCopy=false,
   onDelete=false,
 }){
-
+  const [maxSize,setMaxSize]=useState(1);
+  useEffect(()=>{
+    const len = items.length?items.length:1;
+    setMaxSize(len>maxSize?len:maxSize);
+  },[items])
   return <>
     <div>
-      <strong>{title}</strong>
+      <strong>{title} [{maxSize}]</strong>
       {
         create
           ?<XsButton onClick={ev => create(parentItem)}>
@@ -34,48 +41,54 @@ export function CrudList({
     </div>
     {
       loading?
-        <>Loading</>:
+        <SkeletonList size={maxSize}/>:
         error?
-          (<pre>items.error.message</pre>):
+          (<pre>{items.error.message}</pre>):
           items.map(
-                (it,index,refAll) => <div className={'list-item'} key={it.name+'-'+index}>
-                  {onExpand?<XsButton onClick={ev => onExpand(title,items,it)}>
-                    {it.expanded
-                        ?<i className="pi pi-chevron-up" style={{fontSize:'12px'}}></i>
-                        :<i className="pi pi-chevron-down" style={{fontSize:'12px'}}></i>
-                    }
-                    </XsButton>:[]}
-                  <span className={'item-title'} onClick={ev => onEdit(title,items,it)}>{itemName(it)}</span>
-                  <span className={'item-actions'}>
-                    {onCreateRelated?<XsButton onClick={ev => onCreateRelated(title,items,it)}>
-                      <i className="pi pi-plus" style={{fontSize:'12px'}}></i>
-                    </XsButton>:[]}
-                    {onCopy?<XsButton onClick={ev => {
-                          confirmDialog({
-                              message: `Are you sure you want to duplicate ${it.name} from ${title}?`,
-                              header: 'Confirmation',
-                              icon: 'pi pi-exclamation-triangle',
-                              accept: () => onCopy(title,items,it),
-                              reject: () => {}
-                          });
-                        }}>
-                      <i className="pi pi-copy" style={{fontSize:'12px'}}></i>
-                    </XsButton>:[]}
-                    {onDelete?<XsButton onClick={ev => {
-                          confirmDialog({
-                              message: `Are you sure you want to delete ${it.name} from ${title}?`,
-                              header: 'Confirmation',
-                              icon: 'pi pi-exclamation-triangle',
-                              accept: () => onDelete(title,items,it),
-                              reject: () => {}
-                          });
-                        }}>
-                      <i className="pi pi-trash" style={{fontSize:'12px'}}></i>
-                    </XsButton>:[]}
-                  </span>
-                  {it.expanded?children:[]}
-                  {it.expanded?sublist(it):[]}
-                </div>
+                (it,index,refAll) => <>
+                  <div className={'list-item'} key={it.name+'-'+index}>
+                    {onExpand?<XsButton onClick={ev => onExpand(it,items)}>
+                      {it.expanded
+                          ?<i className="pi pi-chevron-up" style={{fontSize:'12px'}}></i>
+                          :<i className="pi pi-chevron-down" style={{fontSize:'12px'}}></i>
+                      }
+                      </XsButton>:[]}
+                    <span className={'item-title'} onClick={ev => onEdit(it,items)}>{itemName(it)}</span>
+                    <span className={'item-actions'}>
+                      {onCreateRelated?<XsButton onClick={ev => onCreateRelated(it,items)}>
+                        <i className="pi pi-plus" style={{fontSize:'12px'}}></i>
+                      </XsButton>:[]}
+                      {onCopy?<XsButton onClick={ev => {
+                            confirmDialog({
+                                message: `Are you sure you want to duplicate ${it.name} from ${title}?`,
+                                header: 'Confirmation',
+                                icon: 'pi pi-exclamation-triangle',
+                                accept: () => onCopy(it,items),
+                                reject: () => {}
+                            });
+                          }}>
+                        <i className="pi pi-copy" style={{fontSize:'12px'}}></i>
+                      </XsButton>:[]}
+                      {onDelete?<XsButton onClick={ev => {
+                            confirmDialog({
+                                message: `Are you sure you want to delete ${it.name} from ${title}?`,
+                                header: 'Confirmation',
+                                icon: 'pi pi-exclamation-triangle',
+                                accept: () => {
+                                  onDelete(it,items);
+                                  setMaxSize(maxSize-1)
+                                },
+                                reject: () => {}
+                            });
+                          }}>
+                        <i className="pi pi-trash" style={{fontSize:'12px'}}></i>
+                      </XsButton>:[]}
+                    </span>
+                    {it.expanded?children:[]}
+                    {it.expanded?sublist(it):[]}
+                  </div>
+                  <Spacer/>
+                </>
               )
     }
     </>

@@ -3,9 +3,9 @@ import {useState,useEffect} from 'react';
 
 /*api generated at 'https://parallel-scarlet-juravenator.glitch.me'*/
 
-export function useOwner_groups(host='https://parallel-scarlet-juravenator.glitch.me') {
+export function useOwner_groups(host='https://parallel-scarlet-juravenator.glitch.me',options={cacheLife: 0,cachePolicy: 'no-cache',}) {
   const [owner_groups, setOwner_groups] = useState([])
-  const { get, post, put, del, response, loading, error } = useFetch(host)
+  const { get, post, put, del, response, loading, error } = useFetch(host,options)
 
   useEffect(() => { loadInitialOwner_groups() }, []) // componentDidMount
   

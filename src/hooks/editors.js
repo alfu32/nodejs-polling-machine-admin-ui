@@ -7,17 +7,20 @@ export function useEditors(){
   const addEditor = (object)=>{
     const newEditors= {...editors};
     newEditors[object.id]=object;
+    console.log('useEditors.addEditor',{editors,newEditors})
     setEditors(newEditors)
   }
   const removeEditor = (object)=>{
     const newEditors= {...editors};
     delete newEditors[object.id]
+    console.log('useEditors.removeEditor',{editors,newEditors})
     setEditors(newEditors)
   }
   const updateEditor = (object)=>{
     const newEditors= {...editors};
     delete newEditors[object.id];
     newEditors[object.id]=object;
+    console.log('useEditors.updateEditor',{editors,newEditors})
     setEditors(newEditors)
   }
   return [editors,addEditor,removeEditor,updateEditor];

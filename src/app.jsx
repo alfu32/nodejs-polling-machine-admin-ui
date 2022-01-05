@@ -61,7 +61,7 @@ export default function App() {
   const warn=(message)=>toast.current.show({severity: 'warning', summary: 'Warning Message', detail: message});
   const error=(message)=>toast.current.show({severity: 'error', summary: 'Error Message', detail: message});
   
-  const [editors,addEditor,removeEditor,updateEditor] = useEditors([]);
+  const [editors,addEditor,removeEditor,updateEditor] = useEditors();
   const [hlog,setHlog] = useState([]);
   subscribe(({method,prefix,args})=>{
     setHlog([...hlog,{prefix}]);
@@ -112,7 +112,7 @@ export default function App() {
   }
   function editItem(editor) {
     log('sidebar.launch.edit-editor',editor);
-    console.log('addEditor',editor);
+    console.log('addEditor',editor,editors);
     addEditor(editor);
   }
   async function deleteItem(editor) {
@@ -144,7 +144,7 @@ export default function App() {
       .map(m=>{
         const wrapper = {
           item:m,
-          id:`m/${m.npm_module}/${m.injection_ref_name}/${m.module_id}`,
+          id:`m/${m.module_id}`,
           type:'module',
           name:`${m.npm_module}/${m.injection_ref_name}/${m.module_id}`,
           api:{
@@ -176,7 +176,7 @@ export default function App() {
         .map(w=>{
           const wrapper = {
             item:w,
-            id:`w/${w.name}`,
+            id:`w/${w.watcher_id}`,
             type:'watcher',
             name:w.name,
             expanded:!!expanded[w.watcher_id],
@@ -224,7 +224,7 @@ export default function App() {
         .map(s=>{
           const wrapper = {
             item:s,
-            id:`s/${s.name}`,
+            id:`s/${s.subscriber_id}`,
             type:'subscriber',
             name:s.name,
             expanded:!!expanded[s.subscriber_id],
@@ -264,7 +264,7 @@ export default function App() {
         .map(n=>{
           const wrapper = {
             item:n,
-            id:`n/${n.name}`,
+            id:`n/${n.notifier_id}`,
             type:'notifier',
             name:n.name,
             api:{
@@ -320,10 +320,10 @@ export default function App() {
         },
         data:_modules,
         onExpand:false,
-        onEdit:(title,items,item)=>{editItem(item)},
+        onEdit:(item,items)=>{editItem(item)},
         onCreateRelated:false,
         onCopy:false,
-        onDelete:(title,items,item)=>{deleteItem(item)},
+        onDelete:(item,items)=>{deleteItem(item)},
         sublist:(item)=>[],
       }
       const notifiersList={
@@ -347,10 +347,10 @@ export default function App() {
           },
           data:_notifiers,
           onExpand:false,
-          onEdit:(title,items,item)=>{editItem(item)},
+          onEdit:(item,items)=>{editItem(item)},
           onCreateRelated:false,
           onCopy:false,
-          onDelete:(title,items,item)=>{deleteItem(item)},
+          onDelete:(item,items)=>{deleteItem(item)},
           sublist:(item)=>[],
         }
       const subscribersList={
@@ -373,16 +373,16 @@ export default function App() {
             }
           },
           data:_subscribers,
-          onExpand:(title,editors,editor)=>{
+          onExpand:(items,editor)=>{
             const key = editor.item.subscriber_id;
             expanded[key]=!expanded[key];
-            console.log({lists,editors});
+            console.log({lists,items});
             setExpanded({...expanded});
           },
-          onEdit:(title,items,item)=>{editItem(item)},
+          onEdit:(item,items)=>{editItem(item)},
           onCreateRelated:false,
           onCopy:false,
-          onDelete:(title,items,item)=>{deleteItem(item)},
+          onDelete:(item,items)=>{deleteItem(item)},
           sublist:(item) => {
               return <CrudList
                 key={notifiersList.title}
@@ -425,16 +425,16 @@ export default function App() {
           }
         },
         data:_watchers,
-        onExpand:(title,editors,editor)=>{
+        onExpand:(items,editor)=>{
           const key = editor.item.watcher_id;
           expanded[key]=!expanded[key];
-          console.log({lists,editors});
+          console.log({lists,items});
           setExpanded({...expanded});
         },
-        onEdit:(title,items,item)=>{editItem(item)},
+        onEdit:(item,items)=>{editItem(item)},
         onCreateRelated:false,
-        onCopy:(title,items,item)=>{copyItem(item)},
-        onDelete:(title,items,item)=>{deleteItem(item)},
+        onCopy:(item,items)=>{copyItem(item)},
+        onDelete:(item,items)=>{deleteItem(item)},
         sublist:(item) => {
             return <CrudList
               key={subscribersList.title}
@@ -498,6 +498,7 @@ export default function App() {
       </SplitterPanel>
     </Splitter>
       <Toast ref={toast}/>
+      <pre>{JSON.stringify(Object.keys(editors),null," ")}</pre>
       <pre>{JSON.stringify(expanded,null," ")}</pre>
       <pre>{JSON.stringify(hlog,null," ")}</pre>
     </>)
