@@ -47,28 +47,19 @@ export default function App() {
   const [loadingWatchers, errorWatchers,watchers,addWatcher,updateWatcher,deleteWatcher] = useWatchers();
   const [loadingSubscribers, errorSubscribers,subscribers,addSubscriber,updateSubscriber,deleteSubscriber] = useSubscribers();
   const [loadingNotifiers, errorNotifiers,notifiers,addNotifier,updateNotifier,deleteNotifier] = useNotifiers();
-  console.log({
-    loadingModules,
-    loadingWatchers,
-    modules,
-    watchers,
-  })
-  /// const modules = useFetch(`${config.apiBaseUrl}/Modules`, {method:'GET'}, []);
-  /// const watchers = useFetch(`${config.apiBaseUrl}/Watchers`, {method:'GET'}, []);
-  /// console.log({modules,watchers});
+  
   const success=(message)=>toast.current.show({severity: 'success', summary: 'Success Message', detail: message});
   const info=(message)=>toast.current.show({severity: 'info', summary: 'Info Message', detail: message});
   const warn=(message)=>toast.current.show({severity: 'warning', summary: 'Warning Message', detail: message});
   const error=(message)=>toast.current.show({severity: 'error', summary: 'Error Message', detail: message});
   
   const [editors,addEditor,removeEditor,updateEditor] = useEditors();
+  
   const [hlog,setHlog] = useState([]);
   subscribe(({method,prefix,args})=>{
     setHlog([...hlog,{prefix}]);
-  })
-  useEffect(()=>{
-    // setHlog([...hlog])
-  },[hlog])
+  });
+  
   async function saveAction(editor){
     const newItem=Object.keys(editor.changes)
     .reduce((item,key) => {
@@ -86,6 +77,7 @@ export default function App() {
       console.error('error saving',{editor,newItem,err});
     }
   }
+  
   function handleUpdate(tag,code,wrapper,item){
     return function(newValue,changes){
       wrapper.changes=wrapper.changes||{};
@@ -97,6 +89,7 @@ export default function App() {
       updateEditor(wrapper);
     }
   }
+  
   function handleInputUpdate(tag,code,wrapper,item){
     return function(ev){
       const newValue=ev.target.value;
@@ -110,22 +103,26 @@ export default function App() {
       updateEditor(wrapper);
     }
   }
-  function editItem(editor) {
+  
+  function editItem(editor,all) {
     log('sidebar.launch.edit-editor',editor);
-    console.log('addEditor',editor,editors);
+    console.log('addEditor',editor,editors,all);
     addEditor(editor);
   }
-  async function deleteItem(editor) {
-    log('sidebar.delete.edit-editor',editor);
-    console.log('delete-editor',editor);
+  
+  async function deleteItem(item) {
+    log('sidebar.delete.edit-editor',item);
+    console.log('delete-editor',item);
     try{
-      const result = await editor.api.delete(editor.item);
-      console.log('deleted',result,editor)
-      info(`Document ${editor.name} deleted`);
+      const result = await item.api.delete(item.item);
+      console.log('deleted',result,item)
+      info(`${item.type} ${item.name} deleted`);
+      removeEditor(item);
     }catch(err){
-      error(`Document ${editor.name} was not deleted`);
+      error(`${item.type} ${item.name} was not deleted`);
     }
   }
+  
   async function copyItem(editor) {
     log('sidebar.copy.edit-editor',editor);
     console.log('copy-editor',editor);
@@ -137,8 +134,10 @@ export default function App() {
       error(`Document ${editor.name} was not copied`);
     }
   }
+  
   const [lists,setLists]=useState({});
   const [expanded,setExpanded]=useState({});
+  
   useEffect(()=>{
     const _modules = (loadingModules?[]:(modules||[]))
       .map(m=>{
@@ -146,7 +145,7 @@ export default function App() {
           item:m,
           id:`m/${m.module_id}`,
           type:'module',
-          name:`${m.npm_module}/${m.injection_ref_name}/${m.module_id}`,
+          name:m.injection_ref_name||m.module_id,
           api:{
             add:addModule,
             update:updateModule,
@@ -373,8 +372,8 @@ export default function App() {
             }
           },
           data:_subscribers,
-          onExpand:(items,editor)=>{
-            const key = editor.item.subscriber_id;
+          onExpand:(item,items)=>{
+            const key = item.item.subscriber_id;
             expanded[key]=!expanded[key];
             console.log({lists,items});
             setExpanded({...expanded});
@@ -425,8 +424,8 @@ export default function App() {
           }
         },
         data:_watchers,
-        onExpand:(items,editor)=>{
-          const key = editor.item.watcher_id;
+        onExpand:(item,items)=>{
+          const key = item.item.watcher_id;
           expanded[key]=!expanded[key];
           console.log({lists,items});
           setExpanded({...expanded});
@@ -462,10 +461,11 @@ export default function App() {
       modules:modulesList,
       watchers:watchersList,
     })
-  },[modules,watchers,notifiers,subscribers,loadingModules,loadingWatchers,loadingNotifiers,loadingSubscribers,expanded]);
+  },[modules,watchers,notifiers,subscribers,loadingModules,loadingWatchers,loadingNotifiers,loadingSubscribers,expanded,editors]);
+  
   return (<>
-    <Splitter style={{width: '100%'}}>
-      <SplitterPanel>
+    <Splitter style={{width: '100%',height:'100%'}}>
+      <SplitterPanel style={{width: '33%',height:'100%'}}>
         {Object.values(lists)
         .map(
           list => <CrudList
@@ -498,7 +498,7 @@ export default function App() {
       </SplitterPanel>
     </Splitter>
       <Toast ref={toast}/>
-      <pre>{JSON.stringify(Object.keys(editors),null," ")}</pre>
+      <pre>{JSON.stringify((editors.map(e=>e.id)),null," ")}</pre>
       <pre>{JSON.stringify(expanded,null," ")}</pre>
       <pre>{JSON.stringify(hlog,null," ")}</pre>
     </>)

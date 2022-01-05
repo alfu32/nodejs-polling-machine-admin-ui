@@ -13,18 +13,23 @@ export function Editors({editors,removeAction,saveAction,children}){
   return (<TabView activeIndex={activeIndex}
         onTabChange={(e) => setActiveIndex(e.index)}>
     {
-      Object.values(editors).map((editor,index) =>
+      editors.map((editor,index) =>
         <TabPanel
           key={editor.name}
           header={`${editor.type}/${editor.name}`}
           headerTemplate={options => {
-            return <div className={'tab-header'}>
-              <span onClick={ev => setActiveIndex(index)}>{editor.type}/{editor.name}</span>
+            return <div className={'tab-header'} onClick={ev => setActiveIndex(index)}>
+              <span style={{fontSize:'10px',display:'inline-block',marginRight:'5px'}}>{editor.name}</span>
               {editor.changes
-                ?(<XsButton onClick={ev => saveAction(editor)}>
+                ?(<XsButton onClick={ev => {
+                    setActiveIndex(index)
+                    saveAction(editor);
+                  }}>
                   <i className="pi pi-save" style={{fontSize:'12px'}}></i>
                 </XsButton>)
-                :(<XsButton onClick={ev => removeAction(editor)}>
+                :(<XsButton onClick={ev => {
+                    removeAction(editor);
+                  }}>
                   <i className="pi pi-times" style={{fontSize:'12px'}}></i>
                 </XsButton>)
               }

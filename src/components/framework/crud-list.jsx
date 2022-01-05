@@ -5,7 +5,7 @@ import { confirmDialog } from 'primereact/confirmdialog'; // To use confirmDialo
 import { Skeleton } from 'primereact/skeleton';
 
 const Spacer = () => <div style={{margin:'3px',minHeigh:'2px'}}/>;
-const SkeletonList = ({size}) => new Array(size||5).fill(0).map(n => <><Skeleton/><Spacer/></>);
+const SkeletonList = ({size}) => new Array(size||5).fill(0).map((n,i) => <div key={'sk-'+i}><Skeleton/><Spacer/></div>);
 
 export function CrudList({
   children,
